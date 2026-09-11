@@ -17,11 +17,16 @@ neta semanal, ATR), pero sobre un universo filtrado.
 | Leverages (UP/DOWN/BULL/BEAR) | Excluidos | Excluidos |
 | ATR mínimo | 2.0% | **3.0%** (vara más alta: se mueven fácil) |
 
-## Filtro INTRADIA (reemplaza al ATR diario)
+## Filtro HIBRIDO (reemplaza al ATR diario)
 
 El ATR diario miraba el pasado: una moneda podía moverse ayer y estar muerta hoy.
-Ahora el filtro es **1h + 4h + spike de volumen** (velas 15m): solo pasa lo que se
-mueve AHORA. El ATR quedó como dato informativo en `get_coin_analysis`.
+Ahora es híbrido en 2 etapas:
+1. **Puerta intradía** — 1h≥1.5% + 4h≥2% + spike volumen≥1x (velas 15m): solo pasa
+   lo que se mueve AHORA.
+2. **Ranking por racha diaria** — consistencia primero (racha > 1h > neto7d > spike).
+   El neto 7d negativo hunde los rebotes de desplome al fondo.
+3. **Veredicto de seguridad** por moneda: `OK` / `PRECAUCION` (sobre-extendida +35%,
+   en el pico de 4h) / `EVITAR` (+80% en 24h).
 
 ## Tools
 
