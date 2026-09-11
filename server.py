@@ -5,6 +5,8 @@ from scanner import (
     get_klines_detailed,
     get_all_usdt_tickers,
     get_intraday_momentum,
+    safety_verdict,
+    entry_decision,
     calc_atr,
     calc_daily_changes,
     analyze_bullish_streak
@@ -44,8 +46,9 @@ def scan_smallcap_movers(
         only_positive: If True, only rising coins (default: True)
 
     Returns:
-        Dictionary with hybrid-ranked movers (streak > 1h > net7d > spike),
-        each with verdict OK/PRECAUCION/EVITAR
+        Dictionary with hybrid-ranked movers. Every coin carries an automatic
+        ENTRY SIGNAL: ENTER (operable now) / WAIT (pullback/confirmation needed)
+        / AVOID (peak-chase or streakless pump). Sorted ENTER-first.
     """
     results = scan_market(
         min_volume=min_volume,
@@ -74,9 +77,10 @@ def scan_smallcap_movers(
         "pairs_matched": len(results),
         "top_coins": results,
         "summary": {
+            "enter_now": [c["symbol"] for c in results if c["entry"] == "ENTER"],
+            "wait": [c["symbol"] for c in results if c["entry"] == "WAIT"],
+            "avoid": [c["symbol"] for c in results if c["entry"] == "AVOID"],
             "top_pick": results[0] if results else None,
-            "safest_high_streak": next((c for c in results if c["verdict"] == "OK" and c["positive_streak_days"] >= 3), None),
-            "flagged": [c["symbol"] for c in results if c["verdict"] != "OK"]
         }
     }
 
@@ -125,6 +129,16 @@ def get_coin_analysis(symbol: str) -> dict:
             "avg_positive_gain": streak_info["avg_positive_gain"]
         },
         "intraday_now": intraday,
+        "entry_signal": entry_decision(
+            streak_info["positive_streak"],
+            streak_info["net_change_pct"],
+            float(ticker["priceChangePercent"]),
+            (intraday or {}).get("dist_from_4h_high_pct", 99.0),
+            safety_verdict(
+                float(ticker["priceChangePercent"]),
+                (intraday or {}).get("dist_from_4h_high_pct", 99.0)
+            )["verdict"]
+        ) if intraday else {"entry": "WAIT", "size": "0% - esperar", "reason": "sin datos intradía"},
         "recent_daily_candles": klines_raw[-7:]
     }
 
